@@ -115,6 +115,18 @@ function generateColour(number)
  */
 function buildConfig()
 {
+	  // if we’ve never received any Aux_Output modes, return empty lists
+	const modes = cache["/Console/Aux_Outputs/modes"];
+	if (!modes || !Array.isArray(modes.args) || modes.args.length === 0) {
+		return JSON.stringify({
+			config: {
+			aux:       [],
+			channels:  [],
+			snapshot:  currentSnapshotName
+		  }
+		});
+	  }
+
 	let auxilaries = [];
 	if(cache["/Console/Aux_Outputs/modes"] != undefined && config.auxilaries != undefined)
 	{
@@ -194,11 +206,11 @@ function startServer()
 	wss.on("connection", function(socket)
 	{
 		//only allow connections once everything has loaded
-		if(!loaded)
+		/*if(!loaded)
 		{
 			socket.close();
 			return;
-		}
+		}*/
 
 		//save the new connection
 		connections.push(socket);
@@ -596,29 +608,24 @@ function writeConfig()
 /**
  * Load config from disk. If it doesn't exist then use default values.
  */
-function loadConfig()
-{
+function loadConfig() {
 	let _config = {
-		debug: false,
-		server: {
-			port: 80
-		},
-		osc: {
-			port: 8000
-		},
-		desk: {
-			ip: "192.168.0.5",
-			port: 9000
-		},
-		external: []
+	  debug: false,
+	  server: { port: 80 },
+	  osc:    { port: 8000 },
+	  desk:   { ip: "192.168.0.5", port: 9000 },
+	  external: []
 	};
-	if(fs.existsSync("config.json"))
-	{
-		_config = fs.readFileSync('config.json', "utf8");
-		_config = JSON.parse(_config);
+	if (fs.existsSync("config.json")) {
+	  const file = fs.readFileSync('config.json', "utf8");
+	  _config = JSON.parse(file);
 	}
+	// Ensure auxilaries and channels arrays always exist
+	_config.auxilaries = _config.auxilaries || [];
+	_config.channels   = _config.channels   || [];
 	config = _config;
 }
+  
 
 /**
  * Callback to request values from the desk. Will keep trying until values have loaded.
