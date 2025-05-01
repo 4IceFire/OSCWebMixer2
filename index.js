@@ -231,7 +231,7 @@ function startServer()
 				return;
 			}
 
-			oscMsg = processPlugins(oscMsg, socket);
+			oscMsg = processPlugins(oscMsg);
 			if(oscMsg === false)
 			{
 				return;
@@ -471,6 +471,7 @@ function startServer()
 
 	//provide the current config for the auxilaries
 	app.get('/aux', (req, res) => {
+		console.log('[DBG] GET /aux, cache keys =', Object.keys(cache));
 		let auxDetails = [];
 
 		if(cache["/Console/Aux_Outputs/modes"] != undefined)
@@ -507,6 +508,7 @@ function startServer()
 					"icon": icon
 				});
 			}
+			console.log('[DBG] /aux responding with', auxDetails);
 		}
 		res.json(auxDetails);
 	});
@@ -646,22 +648,19 @@ function fetchValues()
 function startOSC()
 {
 	udpPort = new osc.UDPPort({
-		localAddress: mixServerIP,
+		localAddress: "0.0.0.0",
 		localPort: config.osc.port
 	});
 
-	udpPort.on("error", function (err)
-	{
-		if(err.code == "EHOSTDOWN" || err.code == "EHOSTUNREACH")
-		{
-			console.log(err.address + " is not responding");
-			return;
-		}
-		console.error("UDP error", err);
+	// Log any low-level UDP errors (no socket here)
+	udpPort.on("error", (err) => {
+		console.error("⦿ OSC UDP error:", err.code, err.message);
 	});
+	  
 
 	udpPort.on("message", function(oscMsg, timeTag, info)
 	{
+		console.log(`[DBG] UDP msg received from ${info.address}:${info.port} →`, oscMsg.address, oscMsg.args);
 		if(config.debug)
 		{
 			console.log("Message received over UDP: " + JSON.stringify(oscMsg));
@@ -677,7 +676,7 @@ function startOSC()
 			return;
 		}
 
-		oscMsg = processPlugins(oscMsg, socket);
+		oscMsg = processPlugins(oscMsg);
 		if(oscMsg === false)
 		{
 			return;
@@ -704,7 +703,10 @@ function startOSC()
 		broadcast(oscMsg, info.address); //send to everyone except the IP that it came from
 	});
 
-	udpPort.on("ready", fetchValues);
+	udpPort.on("ready", () => {
+		console.log("[DBG] OSC UDP Port Ready — now listening for desk on", udpPort.options.localAddress + ":" + udpPort.options.localPort);
+		fetchValues();
+	});
 
 	udpPort.open();
 }
