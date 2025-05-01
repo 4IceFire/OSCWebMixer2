@@ -183,6 +183,13 @@ function startServer()
 		server: server
 	});
 
+	// Let each plugin hook into Express & WebSocket
+	plugins.forEach(p => {
+		if (typeof p.init === "function") {
+		  p.init(app, wss);
+		}
+	});
+
 	//when a webmixer user has connected
 	wss.on("connection", function(socket)
 	{
@@ -224,7 +231,7 @@ function startServer()
 				return;
 			}
 
-			oscMsg = processPlugins(oscMsg);
+			oscMsg = processPlugins(oscMsg, socket);
 			if(oscMsg === false)
 			{
 				return;
@@ -670,7 +677,7 @@ function startOSC()
 			return;
 		}
 
-		oscMsg = processPlugins(oscMsg);
+		oscMsg = processPlugins(oscMsg, socket);
 		if(oscMsg === false)
 		{
 			return;

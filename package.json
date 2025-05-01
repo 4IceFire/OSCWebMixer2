@@ -18,10 +18,12 @@
         "DiGiCo"
     ],
     "dependencies": {
+        "bcrypt": "^5.1.1",
         "cli-progress": "^3.11.2",
         "colortranslator": "^4.1.0",
         "config": "^3.3.9",
         "express": "^4.19.2",
+        "express-session": "^1.18.1",
         "osc": "github:castles/osc.js",
         "ws": "8.12.0"
     }

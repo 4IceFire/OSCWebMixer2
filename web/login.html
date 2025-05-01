@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Login</title><meta charset="utf-8"></head>
+<body style="font-family:sans-serif; max-width:300px; margin:2em auto;">
+  <h2>Mixer Login</h2>
+  <form method="POST" action="/login">
+    <label>Username<br><input name="username" required></label><br><br>
+    <label>Password<br><input type="password" name="password" required></label><br><br>
+    <button type="submit">Log In</button>
+  </form>
+  <div style="color:red; margin-top:1em">
+    <script>if(location.search.includes("error")) document.write("Invalid credentials");</script>
+  </div>
+</body>
+</html>
