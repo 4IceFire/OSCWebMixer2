@@ -798,14 +798,14 @@ function closeAllConnections()
 function broadcast(oscMsg, source)
 {
 	//notify desk
-	if(config.desk.ip != source)
+	/*if(config.desk.ip != source)
 	{
 		udpPort.send(oscMsg, config.desk.ip, config.desk.port);
 		if(config.debug)
 		{
 			console.log("Sent " + JSON.stringify(oscMsg) + " to " + config.desk.ip + ":" + config.desk.port + " (Mixing Desk)");
 		}
-	}
+	}*/
 
 	//notify all external devices
 	if(config.external)
@@ -815,10 +815,10 @@ function broadcast(oscMsg, source)
 			if(external.broadcast && (external.loopback || external.ip != source))
 			{
 				udpPort.send(oscMsg, external.ip, external.port);
-				if(config.debug)
+				/*if(config.debug)
 				{
 					console.log("Sent " + JSON.stringify(oscMsg) + " to " + external.ip + ":" + external.port + " (" + external.name + ")");
-				}
+				}*/
 			}
 		}
 	}
@@ -837,10 +837,10 @@ function broadcast(oscMsg, source)
 			if(connection != source)
 			{
 				connection.send(JSON.stringify(oscMsg));
-				if(config.debug)
+				/*if(config.debug)
 				{
 					console.log("Sent " + JSON.stringify(oscMsg) + " to socket " + validConnections.length);
-				}
+				}*/
 			}
 		}
 	});
@@ -1022,10 +1022,10 @@ function sendUDP(name, msg)
 			if(external.name == name)
 			{
 				udpPort.send(msg, external.ip, external.port);
-				if(config.debug)
+				/*if(config.debug)
 				{
 					console.log("Sent " + JSON.stringify(msg) + " to " + external.ip + ":" + external.port + " (" + external.name + ")");
-				}
+				}*/
 			}
 		}
 	}
