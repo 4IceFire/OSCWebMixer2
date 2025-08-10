@@ -1,0 +1,122 @@
+--- index.js
++++ index.js (patched)
+@@ -85,6 +85,7 @@
+ 	return new ColorTranslator('hsl(' + ((360 / total) * number) + ' 50% 40%)').HEX;
+ }
+ 
+ /**
+  * Build initial configuration for new connections
+  * @returns - the initial configuration
+  */
++
++/**
++ * Return true if aux n (1-based) is web-allowed
++ */
++function isAuxAllowed(n) {
++	if(!config.web || !Array.isArray(config.web.allowedAuxes) || config.web.allowedAuxes.length === 0) {
++		return true; // no restriction configured
++	}
++	return config.web.allowedAuxes.includes(Number(n));
++}
++
++/**
++ * Extract aux number from an OSC address, if present.
++ * Supports: /Aux_Outputs/<n>/... and /Input_Channels/<ch>/Aux_Send/<n>/...
++ * Returns Number or null.
++ */
++function extractAuxFromAddress(address) {
++	let m = address.match(/^\/Aux_Outputs\/(\d+)\//);
++	if(m) return Number(m[1]);
++	m = address.match(/^\/Input_Channels\/(\d+)\/Aux_Send\/(\d+)\//);
++	if(m) return Number(m[2]);
++	return null;
++}
+ 
+ function buildConfig()
+ {
+ 	let auxilaries = [];
+ 	if(cache["/Console/Aux_Outputs/modes"] != undefined && config.auxilaries != undefined)
+ 	{
+ 		for(const [index, mode] of cache["/Console/Aux_Outputs/modes"].args.entries())
+ 		{
++			if(!isAuxAllowed(index + 1)) { continue; }
+ 			auxilaries.push({
+ 				enabled: config.auxilaries[index] ? config.auxilaries[index].enabled : true,
+ 				label: cache["/Aux_Outputs/" + (index + 1) + "/Buss_Trim/name"].args[0],
+ 				channel: index + 1,
+ 				stereo: mode == 2,
+ 				colour: config.auxilaries[index] ? config.auxilaries[index].colour : generateColour(index),
+ 				icon: config.auxilaries[index] ? config.auxilaries[index].icon : ""
+ 			});
+ 		}
+ 	}
+@@ -454,6 +485,18 @@
+ 		{
+ 			let oscMsg = JSON.parse(data);
+ 
+ 			if(config.debug)
+ 			{
+ 				console.debug("Message recieved from socket client: " + JSON.stringify(oscMsg));
+ 			}
++
++			// Enforce aux visibility/control from web clients
++			const auxFromSocket = extractAuxFromAddress(oscMsg.address || "");
++			if(auxFromSocket !== null && !isAuxAllowed(auxFromSocket)) {
++				if(config.debug) {
++					console.debug("Blocked web command to disallowed aux " + auxFromSocket + ": " + oscMsg.address);
++				}
++				return; // silently drop
++			}
+ 
+ 			//ignore messages that are already cached
+ 			if(cache[oscMsg.address] != undefined && JSON.stringify(cache[oscMsg.address]) == JSON.stringify(oscMsg))
+ 			{
+ 				if(config.debug)
+ 				{
+ 					console.log("Message already in cache " + JSON.stringify(oscMsg));
+@@ -784,7 +827,12 @@
+ 			ip: "192.168.0.5",
+ 			port: 9000
+ 		},
+-		external: []
++		external: [],
++		web: {
++			// 1-based aux numbers the web UI may access.
++			// [] or missing => all auxes allowed
++			allowedAuxes: []
++		}
+ 	};
+ 	if(fs.existsSync("config.json"))
+ 	{
+ 		_config = fs.readFileSync('config.json', "utf8");
+ 		_config = JSON.parse(_config);
+@@ -1005,13 +1053,19 @@
+ 	{
+ 		/**
+ 		* CONNECTING = 0
+ 		* OPEN = 1
+ 		*/
+ 		if(connection.readyState <= 1)
+ 		{
+ 			validConnections.push(connection);
+ 			if(connection != source)
+ 			{
+-				connection.send(JSON.stringify(oscMsg));
+-				if(config.debug)
+-				{
+-					console.log("Sent " + JSON.stringify(oscMsg) + " to socket " + validConnections.length);
+-				}
++				// Send to socket only if this message doesn't target a blocked aux
++				const auxForSocket = extractAuxFromAddress(oscMsg.address || "");
++				if(auxForSocket === null || isAuxAllowed(auxForSocket)) {
++					connection.send(JSON.stringify(oscMsg));
++					if(config.debug)
++					{
++						console.log("Sent " + JSON.stringify(oscMsg) + " to socket " + validConnections.length);
++					}
++				}
+ 
+ 			}
+ 		}
+ 	});
+ 	connections = validConnections;
